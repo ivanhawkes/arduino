@@ -1,5 +1,5 @@
 /*
-    Display debug data on an LCD 16x02 display.
+    Display debug data on an LCD 16x02 display. It can decode and display 16 address lines as hex and binary values.
 
     The circuit:
 
