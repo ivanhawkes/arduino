@@ -36,6 +36,7 @@ volatile unsigned long lastTime = 0;
 volatile unsigned long currentTime = 0;
 volatile unsigned long elapsedTime = 0;
 volatile unsigned long elapsedTimeSinceOutput = 0;
+volatile float clockRate = 0.0f;
 
 int addressLines [addressLineCount] = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52};
 int dataLines [dataLineCount] = {23, 25, 27, 29, 31, 33, 35, 37};
@@ -87,6 +88,7 @@ void pulse()
     currentTime = millis();
     elapsedTime = currentTime - lastTime;
     elapsedTimeSinceOutput += elapsedTime;
+    clockRate = 1000.0f / float (elapsedTime);
     lastTime = currentTime;
 }
 
@@ -135,6 +137,10 @@ void serialOutput()
     // Elapsed time in MS.
     Serial.print(" MS:");
     Serial.print(elapsedTime);
+
+    // Clock rate in hertz.
+    Serial.print(" Hertz:");
+    Serial.print(clockRate);
 
     // Terminate the log line.
     Serial.println("");
@@ -185,11 +191,18 @@ void lcdOutput()
     }
 
     // Elapsed time in MS.
+    // lcd.setCursor(12, 0);
+    // if (elapsedTime < 10000)
+    //     lcd.print(elapsedTime);
+    // else
+    //     lcd.print("----");        
+
+    // Clock rate in hertz.
     lcd.setCursor(12, 0);
-    if (elapsedTime < 500)
-        lcd.print(elapsedTime);
+    if (clockRate < 1000)
+        lcd.print(clockRate);
     else
-        lcd.print("----");        
+        lcd.print(clockRate / 1000.0f);
 }
 
 
