@@ -26,9 +26,16 @@
 
 const int addressLineCount = 16;
 const int dataLineCount = 8;
+volatile unsigned short address = 0;
+volatile unsigned short data = 0;
 
 const byte clockPin = 2;
 volatile byte state = LOW;
+
+volatile unsigned long lastTime = 0;
+volatile unsigned long currentTime = 0;
+volatile unsigned long elapsedTime = 0;
+volatile unsigned long elapsedTimeSinceOutput = 0;
 
 int addressLines [addressLineCount] = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52};
 int dataLines [dataLineCount] = {23, 25, 27, 29, 31, 33, 35, 37};
@@ -60,16 +67,83 @@ void onClock()
 
 void pulse()
 {
-    unsigned short address = 0;
-    unsigned short data = 0;
-
-    lcd.clear();
-
     // Add all the address lines.
     for (int i = 0; i < addressLineCount; ++i)
     {
         address |= digitalRead(addressLines[i]) << i;
     }
+
+    // Add all the data lines.
+    for (int i = 0; i < dataLineCount; ++i)
+    {
+        data |= digitalRead(dataLines[i]) << i;
+    }
+
+    // Flash a LED to show the clock is working.
+    state = !state;
+    digitalWrite(LED_BUILTIN, state);
+
+    // Output the elapsed milliseconds since the last pulse.
+    currentTime = millis();
+    elapsedTime = currentTime - lastTime;
+    elapsedTimeSinceOutput += elapsedTime;
+    lastTime = currentTime;
+}
+
+
+void output()
+{
+    if (elapsedTimeSinceOutput > 250)
+    {
+        lcdOutput();
+        serialOutput();
+        elapsedTimeSinceOutput = 0;
+    }
+}
+
+
+void serialOutput()
+{
+    // Address in binary.
+    Serial.print("B:");
+    Serial.print(address, BIN);
+    
+    // Address in HEX, padded.
+    Serial.print(" A:");
+    if (address < 0x0FFF)
+    {
+        Serial.print("0");
+    }
+    if (address < 0x0FF)
+    {
+        Serial.print("0");
+    }
+    if (address < 0x0F)
+    {
+        Serial.print("0");
+    }
+    Serial.print(address, HEX);
+
+    // Data in HEX, padded.
+    Serial.print(" D:");
+    if (data < 0x0F)
+    {
+        Serial.print("0");
+    }
+    Serial.print(data, HEX);
+
+    // Elapsed time in MS.
+    Serial.print(" MS:");
+    Serial.print(elapsedTime);
+
+    // Terminate the log line.
+    Serial.println("");
+}
+
+
+void lcdOutput()
+{
+    lcd.clear();
 
     // Display the address.
     lcd.setCursor(0, 0);
@@ -91,12 +165,6 @@ void pulse()
     }
     lcd.print(address, HEX);
 
-    // Add all the data lines.
-    for (int i = 0; i < dataLineCount; ++i)
-    {
-        data |= digitalRead(dataLines[i]) << i;
-    }
-
     // Display the data.
     lcd.setCursor(7, 0);
     lcd.print("D:");
@@ -116,41 +184,23 @@ void pulse()
         lcd.print(digitalRead(addressLines[i]));
     }
 
-    // Let's output to the serial console as well.
-    Serial.print("B:");
-    Serial.print(address, BIN);
-    Serial.print(" A:");
-    if (address < 0x0FFF)
-    {
-        Serial.print("0");
-    }
-    if (address < 0x0FF)
-    {
-        Serial.print("0");
-    }
-    if (address < 0x0F)
-    {
-        Serial.print("0");
-    }
-    Serial.print(address, HEX);
-    Serial.print(" D:");
-    if (data < 0x0F)
-    {
-        Serial.print("0");
-    }
-    Serial.print(data, HEX);
-    Serial.println("");
-
-    // Flash a LED to show the clock is working.
-    state = !state;
-    digitalWrite(LED_BUILTIN, state);
-
-    // Slow it down a little.
-    delay(100);
+    // Elapsed time in MS.
+    lcd.setCursor(12, 0);
+    if (elapsedTime < 500)
+        lcd.print(elapsedTime);
+    else
+        lcd.print("----");        
 }
 
 
 void loop()
 {
+    // Cheating - need to pulse by hand for the moment.
     pulse();
+
+    // Update the output devices.
+    output();
+
+    // Slow it down a little.
+    delay(5);
 }
