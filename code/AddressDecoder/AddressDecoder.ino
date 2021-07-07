@@ -21,8 +21,8 @@
     External clock to the interupt 2 pin (INT. 0 on the MEGA)
  */
 
-// include the library code:
 #include <LiquidCrystal.h>
+
 
 const int addressLineCount = 16;
 const int dataLineCount = 8;
@@ -61,13 +61,6 @@ void setup() {
 
 void onClock()
 {
-    Serial.println("Clock!");
-    pulse();
-}
-
-
-void pulse()
-{
     // Add all the address lines.
     for (int i = 0; i < addressLineCount; ++i)
     {
@@ -88,14 +81,20 @@ void pulse()
     currentTime = millis();
     elapsedTime = currentTime - lastTime;
     elapsedTimeSinceOutput += elapsedTime;
-    clockRate = 1000.0f / float (elapsedTime);
+    
+    // Avoid div by zero by assigning a clock rate for times when the clock comes back as zero ms.
+    if (clockRate < 9999.0f)
+        clockRate = 1000.0f / float (elapsedTime);
+    else
+        clockRate = 9999.0f;
+
     lastTime = currentTime;
 }
 
 
 void output()
 {
-    if (elapsedTimeSinceOutput > 250)
+    if (elapsedTimeSinceOutput > 100)
     {
         lcdOutput();
         serialOutput();
@@ -140,7 +139,10 @@ void serialOutput()
 
     // Clock rate in hertz.
     Serial.print(" Hertz:");
-    Serial.print(clockRate);
+    if (clockRate < 9999.0f)
+        Serial.print(clockRate);
+    else
+        Serial.print("----");
 
     // Terminate the log line.
     Serial.println("");
@@ -201,19 +203,18 @@ void lcdOutput()
     lcd.setCursor(12, 0);
     if (clockRate < 1000)
         lcd.print(clockRate);
-    else
+    else if (clockRate < 9999.0f)
         lcd.print(clockRate / 1000.0f);
+    else
+        lcd.print("----");
 }
 
 
 void loop()
 {
-    // Cheating - need to pulse by hand for the moment.
-    pulse();
-
     // Update the output devices.
     output();
 
     // Slow it down a little.
-    delay(5);
+    delay(10);
 }
