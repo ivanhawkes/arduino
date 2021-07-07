@@ -17,10 +17,21 @@
     * wiper to LCD VO pin (pin 3)
 
     Connect address sensing wires to the even number pins 22-52.
+    Connect data sensing wires to the odd number pins 23-37.
+    External clock to the interupt 2 pin (INT. 0 on the MEGA)
  */
 
 // include the library code:
 #include <LiquidCrystal.h>
+
+const int addressLineCount = 16;
+const int dataLineCount = 8;
+
+const byte clockPin = 2;
+volatile byte state = LOW;
+
+int addressLines [addressLineCount] = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52};
+int dataLines [dataLineCount] = {23, 25, 27, 29, 31, 33, 35, 37};
 
 // Initialize the library with the numbers of the interface pins.
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
@@ -29,64 +40,117 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 void setup() {
     // Set up the LCD's number of columns and rows.
     lcd.begin(16, 2);
+
+    // Init serial port.
+    Serial.begin(57600);
+
+    // Attach to an external clock pulse.
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(clockPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(clockPin), onClock, RISING);
 }
 
 
-void loop()
+void onClock()
 {
-    unsigned short address = 0; //0xDEAD;
-    unsigned short data = 0; //0xEA;
+    Serial.println("Clock!");
+    pulse();
+}
+
+
+void pulse()
+{
+    unsigned short address = 0;
+    unsigned short data = 0;
 
     lcd.clear();
 
-    address = digitalRead(22);
-    address += digitalRead(24) << 1;
-    address += digitalRead(26) << 2;
-    address += digitalRead(28) << 3;
-    address += digitalRead(30) << 4;
-    address += digitalRead(32) << 5;
-    address += digitalRead(34) << 6;
-    address += digitalRead(36) << 7;
-    address += digitalRead(38) << 8;
-    address += digitalRead(40) << 9;
-    address += digitalRead(42) << 10;
-    address += digitalRead(44) << 11;
-    address += digitalRead(46) << 12;
-    address += digitalRead(48) << 13;
-    address += digitalRead(50) << 14;
-    address += digitalRead(52) << 15;
+    // Add all the address lines.
+    for (int i = 0; i < addressLineCount; ++i)
+    {
+        address |= digitalRead(addressLines[i]) << i;
+    }
 
     // Display the address.
     lcd.setCursor(0, 0);
     lcd.print("A:");
     lcd.setCursor(2, 0);
+
+    // Zero pad if required.
+    if (address < 0x0FFF)
+    {
+        lcd.print("0");
+    }
+    if (address < 0x0FF)
+    {
+        lcd.print("0");
+    }
+    if (address < 0x0F)
+    {
+        lcd.print("0");
+    }
     lcd.print(address, HEX);
+
+    // Add all the data lines.
+    for (int i = 0; i < dataLineCount; ++i)
+    {
+        data |= digitalRead(dataLines[i]) << i;
+    }
 
     // Display the data.
     lcd.setCursor(7, 0);
     lcd.print("D:");
     lcd.setCursor(9, 0);
+
+    // Zero pad if required.
+    if (data < 0x0F)
+    {
+        lcd.print("0");
+    }
     lcd.print(data, HEX);
     
     // The address in binary.
     lcd.setCursor(0, 1);
-    lcd.print(digitalRead(22));
-    lcd.print(digitalRead(24));
-    lcd.print(digitalRead(26));
-    lcd.print(digitalRead(28));
-    lcd.print(digitalRead(30));
-    lcd.print(digitalRead(32));
-    lcd.print(digitalRead(34));
-    lcd.print(digitalRead(36));
-    lcd.print(digitalRead(38));
-    lcd.print(digitalRead(40));
-    lcd.print(digitalRead(42));
-    lcd.print(digitalRead(44));
-    lcd.print(digitalRead(46));
-    lcd.print(digitalRead(48));
-    lcd.print(digitalRead(50));
-    lcd.print(digitalRead(52));
+    for (int i = 0; i < addressLineCount; ++i)
+    {
+        lcd.print(digitalRead(addressLines[i]));
+    }
+
+    // Let's output to the serial console as well.
+    Serial.print("B:");
+    Serial.print(address, BIN);
+    Serial.print(" A:");
+    if (address < 0x0FFF)
+    {
+        Serial.print("0");
+    }
+    if (address < 0x0FF)
+    {
+        Serial.print("0");
+    }
+    if (address < 0x0F)
+    {
+        Serial.print("0");
+    }
+    Serial.print(address, HEX);
+    Serial.print(" D:");
+    if (data < 0x0F)
+    {
+        Serial.print("0");
+    }
+    Serial.print(data, HEX);
+    Serial.println("");
+
+    // Flash a LED to show the clock is working.
+    state = !state;
+    digitalWrite(LED_BUILTIN, state);
 
     // Slow it down a little.
-    delay(200);
+    delay(100);
+}
+
+
+void loop()
+{
+    pulse();
 }
