@@ -61,6 +61,9 @@ void setup() {
 
 void onClock()
 {
+    address = 0;
+    data = 0;
+
     // Add all the address lines.
     for (int i = 0; i < addressLineCount; ++i)
     {
@@ -111,15 +114,15 @@ void serialOutput()
     
     // Address in HEX, padded.
     Serial.print(" A:");
-    if (address < 0x0FFF)
+    if (address <= 0x0FFF)
     {
         Serial.print("0");
     }
-    if (address < 0x0FF)
+    if (address <= 0x0FF)
     {
         Serial.print("0");
     }
-    if (address < 0x0F)
+    if (address <= 0x0F)
     {
         Serial.print("0");
     }
@@ -127,7 +130,7 @@ void serialOutput()
 
     // Data in HEX, padded.
     Serial.print(" D:");
-    if (data < 0x0F)
+    if (data <= 0x0F)
     {
         Serial.print("0");
     }
@@ -159,15 +162,15 @@ void lcdOutput()
     lcd.setCursor(2, 0);
 
     // Zero pad if required.
-    if (address < 0x0FFF)
+    if (address <= 0x0FFF)
     {
         lcd.print("0");
     }
-    if (address < 0x0FF)
+    if (address <= 0x0FF)
     {
         lcd.print("0");
     }
-    if (address < 0x0F)
+    if (address <= 0x0F)
     {
         lcd.print("0");
     }
@@ -179,7 +182,7 @@ void lcdOutput()
     lcd.setCursor(9, 0);
 
     // Zero pad if required.
-    if (data < 0x0F)
+    if (data <= 0x0F)
     {
         lcd.print("0");
     }
