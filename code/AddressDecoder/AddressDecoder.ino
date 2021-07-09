@@ -190,7 +190,7 @@ void lcdOutput()
     
     // The address in binary.
     lcd.setCursor(0, 1);
-    for (int i = 0; i < addressLineCount; ++i)
+    for (int i = addressLineCount - 1; i >= 0 ; --i)
     {
         lcd.print(digitalRead(addressLines[i]));
     }
