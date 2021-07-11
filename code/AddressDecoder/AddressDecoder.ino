@@ -19,6 +19,8 @@
     Connect address sensing wires to the even number pins 22-52.
     Connect data sensing wires to the odd number pins 23-37.
     External clock to the interupt 2 pin (INT. 0 on the MEGA)
+    65C02 Bus Enable pin to 39
+    65C02 Read / Write pin to 41
  */
 
 #include <LiquidCrystal.h>
@@ -37,6 +39,14 @@ volatile unsigned long currentTime = 0;
 volatile unsigned long elapsedTime = 0;
 volatile unsigned long elapsedTimeSinceOutput = 0;
 volatile float clockRate = 0.0f;
+volatile char clockStr[16];
+volatile char clockMagnitude;
+
+const int busEnablePin = 39;
+int busEnableValue = LOW;
+const int readWritePin = 41;
+int readWriteValue = LOW;
+
 
 int addressLines [addressLineCount] = {22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52};
 int dataLines [dataLineCount] = {23, 25, 27, 29, 31, 33, 35, 37};
@@ -51,6 +61,22 @@ void setup() {
 
     // Init serial port.
     Serial.begin(57600);
+
+    // Init all the address lines.
+    for (int i = 0; i < addressLineCount; ++i)
+    {
+        pinMode(addressLines [i], INPUT);
+    }
+
+    // Init all the data lines.
+    for (int i = 0; i < dataLineCount; ++i)
+    {
+        pinMode(dataLines [i], INPUT);
+    }
+
+    // BusEnable and ReadWrite.
+    pinMode(busEnablePin, INPUT);
+    pinMode(readWritePin, INPUT);
 
     // Attach to an external clock pulse.
     pinMode(LED_BUILTIN, OUTPUT);
@@ -76,20 +102,52 @@ void onClock()
         data |= digitalRead(dataLines[i]) << i;
     }
 
+    // Get some flag values.
+    busEnableValue = digitalRead(busEnablePin);
+    readWriteValue = digitalRead(readWritePin);
+
     // Flash a LED to show the clock is working.
     state = !state;
     digitalWrite(LED_BUILTIN, state);
 
     // Output the elapsed milliseconds since the last pulse.
-    currentTime = millis();
+    currentTime = micros();
     elapsedTime = currentTime - lastTime;
     elapsedTimeSinceOutput += elapsedTime;
     
     // Avoid div by zero by assigning a clock rate for times when the clock comes back as zero ms.
-    if (clockRate < 9999.0f)
-        clockRate = 1000.0f / float (elapsedTime);
+    if (elapsedTime > 0.0f)
+        clockRate = 1000000.0f / float (elapsedTime);
     else
-        clockRate = 9999.0f;
+        clockRate = 0.0f;
+
+    // Turn the clock rate into a string that can be used by sprintf.
+    if (clockRate >= 1000000.0f)
+    {
+        clockMagnitude = 'm';
+        dtostrf(clockRate / 1000000.0f, 1, 1, clockStr);
+    }
+    else if (clockRate >= 1000.0f)
+    {
+        clockMagnitude = 'k';
+        if (clockRate >= 100000.0f)
+            dtostrf(clockRate / 1000.0f, 1, 0, clockStr);
+        else if (clockRate >= 10000.0f)
+            dtostrf(clockRate / 1000.0f, 1, 1, clockStr);
+        else
+            dtostrf(clockRate / 1000.0f, 1, 2, clockStr);
+
+    }
+    else if (clockRate >= 1.0f)
+    {
+        clockMagnitude = 'h';
+        if (clockRate >= 100.0f)
+            dtostrf(clockRate, 1, 0, clockStr);
+        else if (clockRate >= 10.0f)
+            dtostrf(clockRate, 1, 1, clockStr);
+        else
+            dtostrf(clockRate, 1, 2, clockStr);
+    }
 
     lastTime = currentTime;
 }
@@ -97,7 +155,7 @@ void onClock()
 
 void output()
 {
-    if (elapsedTimeSinceOutput > 100)
+    if (elapsedTimeSinceOutput > 100000)
     {
         lcdOutput();
         serialOutput();
@@ -108,44 +166,18 @@ void output()
 
 void serialOutput()
 {
+    char line[80];
+
+    // Format the output string.
+    sprintf(line, "%04X %02X %c%c %s%c", address, data,
+        readWriteValue ? 'R' : 'W', 
+        busEnableValue ? 'E' : 'D',
+        clockStr, clockMagnitude);
+    Serial.print(line);
+
     // Address in binary.
-    Serial.print("B:");
+    Serial.print(" ");
     Serial.print(address, BIN);
-    
-    // Address in HEX, padded.
-    Serial.print(" A:");
-    if (address <= 0x0FFF)
-    {
-        Serial.print("0");
-    }
-    if (address <= 0x0FF)
-    {
-        Serial.print("0");
-    }
-    if (address <= 0x0F)
-    {
-        Serial.print("0");
-    }
-    Serial.print(address, HEX);
-
-    // Data in HEX, padded.
-    Serial.print(" D:");
-    if (data <= 0x0F)
-    {
-        Serial.print("0");
-    }
-    Serial.print(data, HEX);
-
-    // Elapsed time in MS.
-    Serial.print(" MS:");
-    Serial.print(elapsedTime);
-
-    // Clock rate in hertz.
-    Serial.print(" Hertz:");
-    if (clockRate < 9999.0f)
-        Serial.print(clockRate);
-    else
-        Serial.print("----");
 
     // Terminate the log line.
     Serial.println("");
@@ -154,62 +186,25 @@ void serialOutput()
 
 void lcdOutput()
 {
+    char line[16];
+
     lcd.clear();
 
-    // Display the address.
+    // Format the output string.
+    sprintf(line, "%04X %02X %c%c %s%c", address, data,
+        readWriteValue ? 'R' : 'W', 
+        busEnableValue ? 'E' : 'D',
+        clockStr, clockMagnitude);
+
     lcd.setCursor(0, 0);
-    lcd.print("A:");
-    lcd.setCursor(2, 0);
+    lcd.print(line);
 
-    // Zero pad if required.
-    if (address <= 0x0FFF)
-    {
-        lcd.print("0");
-    }
-    if (address <= 0x0FF)
-    {
-        lcd.print("0");
-    }
-    if (address <= 0x0F)
-    {
-        lcd.print("0");
-    }
-    lcd.print(address, HEX);
-
-    // Display the data.
-    lcd.setCursor(7, 0);
-    lcd.print("D:");
-    lcd.setCursor(9, 0);
-
-    // Zero pad if required.
-    if (data <= 0x0F)
-    {
-        lcd.print("0");
-    }
-    lcd.print(data, HEX);
-    
     // The address in binary.
     lcd.setCursor(0, 1);
     for (int i = addressLineCount - 1; i >= 0 ; --i)
     {
         lcd.print(digitalRead(addressLines[i]));
     }
-
-    // Elapsed time in MS.
-    // lcd.setCursor(12, 0);
-    // if (elapsedTime < 10000)
-    //     lcd.print(elapsedTime);
-    // else
-    //     lcd.print("----");        
-
-    // Clock rate in hertz.
-    lcd.setCursor(12, 0);
-    if (clockRate < 1000)
-        lcd.print(clockRate);
-    else if (clockRate < 9999.0f)
-        lcd.print(clockRate / 1000.0f);
-    else
-        lcd.print("----");
 }
 
 
