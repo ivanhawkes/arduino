@@ -56,27 +56,18 @@ void loop()
   // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
   GyZ=Wire.read() << 8 | Wire.read();
   
-  // Format the output string.
-  // sprintf(line, "%u\t%u\t%u\t%u\t%u\t%u\t%u\t",
-  //   AcX, 
-  //   AcY,
-  //   AcZ,
-  //   Tmp / 340.00 + 36.53,
-  //   GyX,
-  //   GyY,
-  //   GyZ);
-  // Serial.print(line);
-  // Serial.println();
-
+  // Note: I had issues with the value outputs when I used an sprintf for the output, thus this mess.
   Serial.print(AcX);Serial.print("\t");
   Serial.print(AcY);Serial.print("\t");
   Serial.print(AcZ);Serial.print("\t");
+  
   // Equation for temperature in degrees C from datasheet.
   Serial.print(Tmp / 340.00 + 36.53);Serial.print("\t");
+
   Serial.print(GyX);Serial.print("\t");
   Serial.print(GyY);Serial.print("\t");
   Serial.print(GyZ);Serial.print("\t");
   Serial.println();
 
-  delay(333);
+  delay(5);
 }
