@@ -1,7 +1,7 @@
 #include<Wire.h>
 
 // I2C address of the MPU-6050.
-const int MPU_addr=0x68;
+const int MPU_addr = 0x68;
 
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 char line[132];
@@ -20,7 +20,12 @@ void setup()
   Wire.write(0);
   
   Wire.endTransmission(true);
-  Serial.begin(57600);
+
+
+  Serial.begin(115200);
+
+  // Waiting for Serial Monitor.
+  while (!Serial);
 
   // Position the cursor.
   sprintf(line, "%c[1;1H", 0x1b);
@@ -94,5 +99,5 @@ void loop()
   Serial.print(GyZ);Serial.print("\t");
   Serial.println();
 
-  delay(5);
+  delay(250);
 }
