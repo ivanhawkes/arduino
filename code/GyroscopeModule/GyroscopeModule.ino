@@ -4,6 +4,8 @@
 const int MPU_addr=0x68;
 
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
+char line[132];
+
 
 
 void setup()
@@ -20,14 +22,20 @@ void setup()
   Wire.endTransmission(true);
   Serial.begin(57600);
 
-  Serial.println("AcX AcY AcZ Temp GyX GyY GyZ");
+  // Position the cursor.
+  sprintf(line, "%c[1;1H", 0x1b);
+  Serial.print(line);
+  
+  // Clear the line.
+  sprintf(line, "%c[2K", 0x1b);
+  Serial.print(line);
+
+  Serial.println("AcX     AcY     AcZ     Temp    GyX     GyY     GyZ");
 }
 
 
 void loop()
 {
-    char line[132];
-
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -56,13 +64,30 @@ void loop()
   // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
   GyZ=Wire.read() << 8 | Wire.read();
   
+  // Position the cursor.
+  sprintf(line, "%c[2;1H", 0x1b);
+  Serial.print(line);
+  
+  // Clear the line.
+  sprintf(line, "%c[2K", 0x1b);
+  Serial.print(line);
+
+  sprintf(line, "%c[36m", 0x1b);
+  Serial.print(line);
+
   // Note: I had issues with the value outputs when I used an sprintf for the output, thus this mess.
   Serial.print(AcX);Serial.print("\t");
   Serial.print(AcY);Serial.print("\t");
   Serial.print(AcZ);Serial.print("\t");
   
+  sprintf(line, "%c[31m", 0x1b);
+  Serial.print(line);
+
   // Equation for temperature in degrees C from datasheet.
   Serial.print(Tmp / 340.00 + 36.53);Serial.print("\t");
+
+  sprintf(line, "%c[34m", 0x1b);
+  Serial.print(line);
 
   Serial.print(GyX);Serial.print("\t");
   Serial.print(GyY);Serial.print("\t");
