@@ -1,21 +1,133 @@
 #include <Wire.h>
 
 const uint8_t I2C_ADDRESS = 0x42;
+const byte clockPin = 2;
+const byte dataPin = 3;
+
+enum i2cState
+{
+	idle,
+	started,
+	restarted
+};
+
+
+volatile bool clockValue;
+volatile bool dataValue;
+volatile bool lastClockValue {1};
+volatile i2cState protocolState {idle};
 
 
 void setup()
-{
+{ 
 	Wire.begin(I2C_ADDRESS);
 	Wire.onRequest(requestEvent);
 	Wire.onReceive(receiveEvent);
+
+    // Watch the clock and data pins for changes.
+	pinMode(clockPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(clockPin), onClock, CHANGE);
+    pinMode(dataPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(dataPin), onData, CHANGE);
+
+	Serial.begin(115200);
 }
 
 
-void loop()
+void loop() 
 {
-	Serial.begin(115200);
-	Serial.print(".");
-	delay(1000);
+	delay(1);
+}
+
+
+void onClock()
+{
+	// Read the clock.
+    clockValue = digitalRead(clockPin);
+
+	if (clockValue)
+	{
+		Serial.print("¯");
+		// Serial.print(dataValue ? "1" : "0");
+	}
+	else
+	{
+		Serial.print("_");
+		// Serial.print(dataValue ? "1" : "0");
+	}
+
+	// volatile bool dataValue;
+
+	// dataValue = digitalRead(dataPin);
+	// Serial.print(dataValue ? "1" : "0");
+
+	// Keep track.
+	lastClockValue = clockValue;
+}
+
+
+void onData()
+{
+	// Get some flag values.
+	dataValue = digitalRead(dataPin);
+
+	switch (protocolState)
+	{
+		case idle:
+			// Start condition.
+			if ((clockValue) && (!dataValue))
+			{
+				Serial.println("");
+				Serial.print("ST: ");
+				protocolState = started;
+			}
+			break;
+
+		case started:
+			// Start condition.
+			if ((clockValue) && (!dataValue))
+			{
+				Serial.println("");
+				Serial.print("SR: ");
+				protocolState = restarted;
+			}
+			else if ((clockValue) && (dataValue))
+			{
+				Serial.println("");
+				Serial.println("SP");
+				protocolState = idle;
+			}
+			
+			break;
+			
+		case restarted:
+			// Start condition.
+			if ((clockValue) && (!dataValue))
+			{
+				Serial.println("");
+				Serial.print("RR: ");
+				protocolState = restarted;
+			}
+			else if ((clockValue) && (dataValue))
+			{
+				Serial.println("");
+				Serial.println("SP");
+				protocolState = idle;
+			}
+			break;
+			
+	}
+
+	if (dataValue)
+	{
+		// Serial.print(">");
+		Serial.print(dataValue ? "1" : "0");
+	}
+	else
+	{
+		// Serial.print("<");
+		Serial.print(dataValue ? "1" : "0");
+	}
 }
 
 
