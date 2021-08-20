@@ -32,80 +32,96 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(dataPin), onData, CHANGE);
 
 	Serial.begin(115200);
+	Serial.println("Clock  Data");
 }
 
 
 void loop() 
 {
-	delay(1);
+	// Read the clock and data.
+    clockValue = digitalRead(clockPin);
+	dataValue = digitalRead(dataPin);
+	Serial.print(clockValue * 5);
+	Serial.print("   ");
+	Serial.println(dataValue * 5);
+
+	delay(40);
 }
 
 
 void onClock()
 {
-	// Read the clock.
-    clockValue = digitalRead(clockPin);
-
-	if (clockValue)
-	{
-		// Serial.print("¯");
-		Serial.print("/");
-		clockIsRising = true;
-		// Serial.print(dataValue ? "1" : "0");
-	}
-	else
-	{
-		// Serial.print("_");
-		Serial.print("\\");
-		clockIsRising = false;
-		// Serial.print(dataValue ? "1" : "0");
-	}
-
-	// volatile bool dataValue;
-
+	// // Read the clock and data.
+    // clockValue = digitalRead(clockPin);
 	// dataValue = digitalRead(dataPin);
-	// Serial.print(dataValue ? "1" : "0");
+	// Serial.print(clockValue * 5);
+	// Serial.print("   ");
+	// Serial.println(dataValue * 5);
 
-	// Keep track.
-	lastClockValue = clockValue;
+	// if (clockValue)
+	// {
+	// 	// Serial.print("¯");
+	// 	Serial.print("/");
+	// 	clockIsRising = true;
+	// 	// Serial.print(dataValue ? "1" : "0");
+	// }
+	// else
+	// {
+	// 	// Serial.print("_");
+	// 	Serial.print("\\");
+	// 	clockIsRising = false;
+	// 	// Serial.print(dataValue ? "1" : "0");
+	// }
+
+	// // volatile bool dataValue;
+
+	// // dataValue = digitalRead(dataPin);
+	// // Serial.print(dataValue ? "1" : "0");
+
+	// // Keep track.
+	// lastClockValue = clockValue;
 }
 
 
 void onData()
 {
-	// Get some flag values.
-	dataValue = digitalRead(dataPin);
+	// // Read the clock and data.
+    // clockValue = digitalRead(clockPin);
+	// dataValue = digitalRead(dataPin);
+	// Serial.print(clockValue * 5);
+	// Serial.print("   ");
+	// Serial.println(dataValue * 5);
 
-	switch (protocolState)
-	{
-		case idle:
-			// Start condition.
-			if ((clockValue) && (!dataValue))
-			{
-				Serial.println("");
-				Serial.print("ST: ");
-				protocolState = started;
-			}
-			break;
+	// switch (protocolState)
+	// {
+	// 	case idle:
+	// 		// Start condition.
+	// 		if ((clockValue) && (!dataValue))
+	// 		{
+	// 			Serial.println("");
+	// 			Serial.print("ST: ");
+	// 			protocolState = started;
+	// 		}
+	// 		break;
 
-		case started:
-		case restarted:
-			Serial.println("");
-			// Start condition.
-			if ((clockValue) && (!dataValue))
-			{
-				if (protocolState == started)
-					Serial.print("SR: ");
-				else
-					Serial.print("RR: ");				
-				protocolState = restarted;
-			}
-			else if ((clockValue) && (dataValue))
-			{
-				Serial.println("SP");
-				protocolState = idle;
-			}
-	}
+	// 	case started:
+	// 	case restarted:
+	// 		Serial.println("");
+	// 		// Start condition.
+	// 		if ((clockValue) && (!dataValue))
+	// 		{
+	// 			if (protocolState == started)
+	// 				Serial.print("SR: ");
+	// 			else
+	// 				Serial.print("RR: ");				
+	// 			protocolState = restarted;
+	// 		}
+	// 		else if ((clockValue) && (dataValue))
+	// 		{
+	// 			Serial.println("SP");
+	// 			protocolState = idle;
+	// 		}
+	// }
 }
 
 
