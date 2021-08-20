@@ -15,6 +15,7 @@ enum i2cState
 volatile bool clockValue;
 volatile bool dataValue;
 volatile bool lastClockValue {1};
+volatile bool clockIsRising {0};
 volatile i2cState protocolState {idle};
 
 
@@ -47,12 +48,16 @@ void onClock()
 
 	if (clockValue)
 	{
-		Serial.print("¯");
+		// Serial.print("¯");
+		Serial.print("/");
+		clockIsRising = true;
 		// Serial.print(dataValue ? "1" : "0");
 	}
 	else
 	{
-		Serial.print("_");
+		// Serial.print("_");
+		Serial.print("\\");
+		clockIsRising = false;
 		// Serial.print(dataValue ? "1" : "0");
 	}
 
@@ -84,49 +89,22 @@ void onData()
 			break;
 
 		case started:
-			// Start condition.
-			if ((clockValue) && (!dataValue))
-			{
-				Serial.println("");
-				Serial.print("SR: ");
-				protocolState = restarted;
-			}
-			else if ((clockValue) && (dataValue))
-			{
-				Serial.println("");
-				Serial.println("SP");
-				protocolState = idle;
-			}
-			
-			break;
-			
 		case restarted:
+			Serial.println("");
 			// Start condition.
 			if ((clockValue) && (!dataValue))
 			{
-				Serial.println("");
-				Serial.print("RR: ");
+				if (protocolState == started)
+					Serial.print("SR: ");
+				else
+					Serial.print("RR: ");				
 				protocolState = restarted;
 			}
 			else if ((clockValue) && (dataValue))
 			{
-				Serial.println("");
 				Serial.println("SP");
 				protocolState = idle;
 			}
-			break;
-			
-	}
-
-	if (dataValue)
-	{
-		// Serial.print(">");
-		Serial.print(dataValue ? "1" : "0");
-	}
-	else
-	{
-		// Serial.print("<");
-		Serial.print(dataValue ? "1" : "0");
 	}
 }
 
